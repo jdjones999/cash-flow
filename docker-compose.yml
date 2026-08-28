@@ -1,0 +1,7 @@
+services:
+  cash-flow:
+    build: .
+    container_name: cash-flow
+    ports:
+      - "9600:80"
+    restart: always
