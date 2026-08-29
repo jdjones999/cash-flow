@@ -10,7 +10,6 @@ const DATA_FILE = path.join(__dirname, 'data_store.json');
 app.use(cors());
 app.use(express.json());
 
-// API Auth Status Endpoint
 app.get('/api/auth/status', (req, res) => {
   let data = { settings: { allowRegistrations: true }, users: [] };
   if (fs.existsSync(DATA_FILE)) {
@@ -27,10 +26,8 @@ app.get('/api/auth/status', (req, res) => {
   });
 });
 
-// Serve frontend static files
 app.use(express.static(path.join(__dirname, 'dist')));
 
-// Fallback route for React SPA routing
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
