@@ -1,7 +1,11 @@
+version: '3.8'
+
 services:
   cash-flow:
     build: .
     container_name: cash-flow
-    ports:
-      - "9600:80"
     restart: always
+    ports:
+      - "9600:9600"
+    volumes:
+      - ./data_store.json:/app/data_store.json
