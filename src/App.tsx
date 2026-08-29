@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   LayoutDashboard, DollarSign, Calendar as CalendarIcon, AlertTriangle, 
-  Wallet, Plus, Trash2, Edit3, Check, X, LogIn, LogOut, ChevronLeft, ChevronRight
+  Wallet, Plus, Trash2, Edit3, Check, X, LogIn, LogOut, ChevronLeft, ChevronRight, TrendingUp
 } from 'lucide-react';
 
 interface CashFlowItem {
@@ -11,7 +11,7 @@ interface CashFlowItem {
   category: 'income' | 'subscription' | 'unexpected_expense';
   billingCycle: 'monthly' | 'yearly' | 'one_time';
   tag: string;
-  dueDate?: number; // Day of the month (1-31)
+  dueDate?: number;
 }
 
 export function App() {
@@ -69,7 +69,13 @@ export function App() {
     .filter(i => i.category === 'unexpected_expense')
     .reduce((acc, i) => acc + i.amount, 0);
 
-  const netCashFlow = totalIncome - (totalSubscriptions + totalUnexpected);
+  const totalExpenses = totalSubscriptions + totalUnexpected;
+  const netCashFlow = totalIncome - totalExpenses;
+
+  // Find most expensive item
+  const mostExpensive = items.length > 0 
+    ? [...items].sort((a, b) => b.amount - a.amount)[0]
+    : null;
 
   const handleAddItem = (category: CashFlowItem['category'], billingCycle: CashFlowItem['billingCycle']) => {
     if (!name || !amount) return;
@@ -111,7 +117,6 @@ export function App() {
     setItems(items.filter(item => item.id !== id));
   };
 
-  // Login View
   if (!isAuthenticated) {
     return (
       <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#0b0f19', justifyContent: 'center', alignItems: 'center', fontFamily: 'Inter, system-ui, sans-serif' }}>
@@ -162,6 +167,93 @@ export function App() {
       </div>
     );
   }
+
+  const renderDashboardOverview = () => {
+    const budgetUsedPercent = totalIncome > 0 ? Math.min(Math.round((totalExpenses / totalIncome) * 100), 100) : 0;
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        
+        {/* Cost History Chart & Budget Overview Row */}
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
+          
+          {/* Cost History Visualizer */}
+          <div style={{ backgroundColor: '#131b2e', borderRadius: '12px', border: '1px solid #1e293b', padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
+              <TrendingUp style={{ color: '#38bdf8', width: '20px', height: '20px' }} />
+              <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#f8fafc', margin: 0 }}>Cost History</h3>
+            </div>
+
+            {/* Simulated Chart Container */}
+            <div style={{ height: '220px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', padding: '0 1rem 1rem 1rem', borderBottom: '1px solid #1e293b', position: 'relative' }}>
+              
+              {/* Y-Axis Gridlines */}
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: '2rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', opacity: 0.1, pointerEvents: 'none' }}>
+                <div style={{ borderTop: '1px solid #fff' }}></div>
+                <div style={{ borderTop: '1px solid #fff' }}></div>
+                <div style={{ borderTop: '1px solid #fff' }}></div>
+              </div>
+
+              {/* Data Point Marker */}
+              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 1 }}>
+                <div style={{ backgroundColor: '#1e293b', border: '1px solid #3b82f6', color: '#f8fafc', padding: '0.4rem 0.75rem', borderRadius: '6px', fontSize: '0.75rem', marginBottom: '0.75rem', textAlign: 'center', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.5)' }}>
+                  <div>2026/08</div>
+                  <div style={{ color: '#38bdf8', fontWeight: '700' }}>Cost : ${totalExpenses.toFixed(2)}</div>
+                </div>
+                <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#2563eb', border: '2px solid #38bdf8' }}></div>
+                <span style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.5rem' }}>2026/08</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Budget Overview Card */}
+          <div style={{ backgroundColor: '#131b2e', borderRadius: '12px', border: '1px solid #1e293b', padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <div>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#f8fafc', marginBottom: '1.5rem' }}>Budget Overview</h3>
+              
+              <div style={{ marginBottom: '1.25rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                  <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Budget used</span>
+                  <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Monthly Income</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: '0.25rem' }}>
+                  <span style={{ fontSize: '1.5rem', fontWeight: '700', color: '#38bdf8' }}>${totalExpenses.toFixed(2)}</span>
+                  <span style={{ fontSize: '1.1rem', fontWeight: '600', color: '#f8fafc' }}>${totalIncome.toFixed(2)}</span>
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              <div style={{ width: '100%', backgroundColor: '#0b0f19', borderRadius: '999px', height: '8px', overflow: 'hidden', marginBottom: '0.5rem' }}>
+                <div style={{ width: `${budgetUsedPercent}%`, backgroundColor: '#2563eb', height: '100%', borderRadius: '999px' }}></div>
+              </div>
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#64748b', marginBottom: '1.5rem' }}>
+                <span>{budgetUsedPercent}% budget used</span>
+                <span>Remaining: ${(totalIncome - totalExpenses).toFixed(2)}</span>
+              </div>
+
+              {/* Most Expensive Item Highlight */}
+              {mostExpensive && (
+                <div style={{ backgroundColor: '#0b0f19', border: '1px solid #1e293b', padding: '0.85rem 1rem', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <span style={{ fontSize: '0.65rem', fontWeight: '700', color: '#64748b', letterSpacing: '0.05em', textTransform: 'uppercase', display: 'block' }}>MOST EXPENSIVE</span>
+                    <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#f8fafc' }}>{mostExpensive.name}</span>
+                  </div>
+                  <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#38bdf8' }}>${mostExpensive.amount.toFixed(2)}</span>
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '1rem', borderTop: '1px solid #1e293b', fontSize: '0.85rem', color: '#94a3b8' }}>
+              <span>Total Subscriptions</span>
+              <span style={{ fontWeight: '700', color: '#f8fafc' }}>{items.filter(i => i.category === 'subscription').length}</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    );
+  };
 
   const renderItemTable = (filteredItems: CashFlowItem[], categoryName: string, categoryType: CashFlowItem['category'], defaultCycle: CashFlowItem['billingCycle']) => (
     <div style={{ backgroundColor: '#131b2e', borderRadius: '12px', border: '1px solid #1e293b', padding: '1.5rem', marginTop: '1.5rem' }}>
@@ -277,12 +369,10 @@ export function App() {
             </div>
           </div>
 
-          {/* Grid Headers */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0.5rem', textTransform: 'uppercase', fontSize: '0.75rem', color: '#64748b', fontWeight: '600', textAlign: 'center', marginBottom: '0.5rem' }}>
             <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
           </div>
 
-          {/* Day Grid */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0.5rem' }}>
             {days.map(day => {
               const dayItems = items.filter(i => i.dueDate === day);
@@ -324,7 +414,6 @@ export function App() {
           </div>
         </div>
 
-        {/* Selected Day Details */}
         <div style={{ backgroundColor: '#131b2e', borderRadius: '12px', border: '1px solid #1e293b', padding: '1.5rem' }}>
           <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#f8fafc', marginBottom: '1rem' }}>
             Scheduled for Day {selectedDay}
@@ -446,34 +535,28 @@ export function App() {
           </div>
         </div>
 
-        {/* Dynamic Section Rendering */}
-        {activeTab === 'dashboard' && (
-          <div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
-              <div style={{ backgroundColor: '#131b2e', padding: '1.25rem', borderRadius: '12px', border: '1px solid #1e293b' }}>
-                <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Total Income</span>
-                <div style={{ fontSize: '1.6rem', fontWeight: '700', color: '#4ade80', marginTop: '0.25rem' }}>${totalIncome.toFixed(2)}</div>
-              </div>
-              <div style={{ backgroundColor: '#131b2e', padding: '1.25rem', borderRadius: '12px', border: '1px solid #1e293b' }}>
-                <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Recurring Subscriptions</span>
-                <div style={{ fontSize: '1.6rem', fontWeight: '700', color: '#f87171', marginTop: '0.25rem' }}>${totalSubscriptions.toFixed(2)}</div>
-              </div>
-              <div style={{ backgroundColor: '#131b2e', padding: '1.25rem', borderRadius: '12px', border: '1px solid #1e293b' }}>
-                <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>One-Time Expenses</span>
-                <div style={{ fontSize: '1.6rem', fontWeight: '700', color: '#fbbf24', marginTop: '0.25rem' }}>${totalUnexpected.toFixed(2)}</div>
-              </div>
-              <div style={{ backgroundColor: '#131b2e', padding: '1.25rem', borderRadius: '12px', border: netCashFlow >= 0 ? '1px solid #2563eb' : '1px solid #ef4444' }}>
-                <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Net Cash Flow</span>
-                <div style={{ fontSize: '1.6rem', fontWeight: '700', color: netCashFlow >= 0 ? '#38bdf8' : '#ef4444', marginTop: '0.25rem' }}>${netCashFlow.toFixed(2)}</div>
-              </div>
-            </div>
-
-            {renderItemTable(items.filter(i => i.category === 'income'), 'Income & Base Salary', 'income', 'monthly')}
-            {renderItemTable(items.filter(i => i.category === 'subscription'), 'Subscriptions / Recurring', 'subscription', 'monthly')}
-            {renderItemTable(items.filter(i => i.category === 'unexpected_expense'), 'One-Time Expenses', 'unexpected_expense', 'one_time')}
+        {/* Global Overview Cards (Always Visible) */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
+          <div style={{ backgroundColor: '#131b2e', padding: '1.25rem', borderRadius: '12px', border: '1px solid #1e293b' }}>
+            <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Total Income</span>
+            <div style={{ fontSize: '1.6rem', fontWeight: '700', color: '#4ade80', marginTop: '0.25rem' }}>${totalIncome.toFixed(2)}</div>
           </div>
-        )}
+          <div style={{ backgroundColor: '#131b2e', padding: '1.25rem', borderRadius: '12px', border: '1px solid #1e293b' }}>
+            <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Recurring Subscriptions</span>
+            <div style={{ fontSize: '1.6rem', fontWeight: '700', color: '#f87171', marginTop: '0.25rem' }}>${totalSubscriptions.toFixed(2)}</div>
+          </div>
+          <div style={{ backgroundColor: '#131b2e', padding: '1.25rem', borderRadius: '12px', border: '1px solid #1e293b' }}>
+            <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>One-Time Expenses</span>
+            <div style={{ fontSize: '1.6rem', fontWeight: '700', color: '#fbbf24', marginTop: '0.25rem' }}>${totalUnexpected.toFixed(2)}</div>
+          </div>
+          <div style={{ backgroundColor: '#131b2e', padding: '1.25rem', borderRadius: '12px', border: netCashFlow >= 0 ? '1px solid #2563eb' : '1px solid #ef4444' }}>
+            <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Net Cash Flow</span>
+            <div style={{ fontSize: '1.6rem', fontWeight: '700', color: netCashFlow >= 0 ? '#38bdf8' : '#ef4444', marginTop: '0.25rem' }}>${netCashFlow.toFixed(2)}</div>
+          </div>
+        </div>
 
+        {/* Tab Specific Content */}
+        {activeTab === 'dashboard' && renderDashboardOverview()}
         {activeTab === 'income' && renderItemTable(items.filter(i => i.category === 'income'), 'Income & Base Salary', 'income', 'monthly')}
         {activeTab === 'subscriptions' && renderItemTable(items.filter(i => i.category === 'subscription'), 'Subscriptions / Recurring', 'subscription', 'monthly')}
         {activeTab === 'unexpected' && renderItemTable(items.filter(i => i.category === 'unexpected_expense'), 'One-Time Expenses', 'unexpected_expense', 'one_time')}
