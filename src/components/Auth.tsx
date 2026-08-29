@@ -1,18 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Wallet, LogIn, UserPlus, ShieldAlert, CheckCircle } from 'lucide-react';
 import { User } from '../types/auth';
-import { getUsers, addUser } from '../data/users';
 
 interface AuthProps {
   onLoginSuccess: (user: User) => void;
 }
 
-export function Auth({ onLoginSuccess }: AuthProps) {
-  const users = getUsers();
-  
-  // If ANY user exists in local storage, assume initial admin setup is complete
-  const hasAdmin = users.length > 0;
+const API_BASE = 'http://192.168.0.3:3001/api';
 
+export function Auth({ onLoginSuccess }: AuthProps) {
+  const [hasAdmin, setHasAdmin] = useState<boolean>(true);
+  const [allowRegistrations, setAllowRegistrations] = useState<boolean>(true);
+  
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -21,66 +20,85 @@ export function Auth({ onLoginSuccess }: AuthProps) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const checkStatus = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/auth/status`);
+      const data = await res.json();
+      setHasAdmin(data.hasAdmin);
+      setAllowRegistrations(data.allowRegistrations);
+
+      if (!data.hasAdmin) {
+        setMode('signup');
+      }
+    } catch (e) {
+      setError('Unable to connect to backend service.');
+    }
+  };
+
+  useEffect(() => {
+    checkStatus();
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccess('');
 
-    const currentUsers = getUsers();
-
-    // Sign Up Flow
     if (mode === 'signup') {
       if (password !== confirmPassword) {
         setError('Passwords do not match. Please try again.');
         return;
       }
 
-      const existingUser = currentUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
-      if (existingUser) {
-        setError('An account with this email already exists.');
-        return;
-      }
+      try {
+        const res = await fetch(`${API_BASE}/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
 
-      // First user created on local session gets admin, ALL subsequent signups are standard 'user'
-      const isAdminRegistration = currentUsers.length === 0;
+        const data = await res.json();
 
-      const newUser: User = {
-        id: `usr_${Date.now()}`,
-        email,
-        passwordHash: password,
-        role: isAdminRegistration ? 'admin' : 'user',
-        isVerified: isAdminRegistration, // Standard users require verification
-        createdAt: new Date().toISOString(),
-      };
+        if (!res.ok) {
+          setError(data.error || 'Failed to register account.');
+          return;
+        }
 
-      addUser(newUser);
-
-      if (isAdminRegistration) {
-        onLoginSuccess(newUser);
-      } else {
-        setSuccess('Account created! Awaiting admin verification before you can sign in.');
-        setEmail('');
-        setPassword('');
-        setConfirmPassword('');
-        setMode('signin');
+        if (data.user.role === 'admin') {
+          onLoginSuccess(data.user);
+        } else {
+          setSuccess('Account created! Awaiting admin approval before you can sign in.');
+          setEmail('');
+          setPassword('');
+          setConfirmPassword('');
+          setMode('signin');
+          checkStatus();
+        }
+      } catch (e) {
+        setError('Server communication error during registration.');
       }
       return;
     }
 
     // Sign In Flow
-    const user = currentUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
+    try {
+      const res = await fetch(`${API_BASE}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
 
-    if (!user || user.passwordHash !== password) {
-      setError('Invalid email or password.');
-      return;
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || 'Login failed.');
+        return;
+      }
+
+      onLoginSuccess(data.user);
+    } catch (e) {
+      setError('Server communication error during login.');
     }
-
-    if (!user.isVerified) {
-      setError('Your account is pending admin approval.');
-      return;
-    }
-
-    onLoginSuccess(user);
   };
 
   return (
@@ -98,7 +116,7 @@ export function Auth({ onLoginSuccess }: AuthProps) {
           {!hasAdmin ? 'Setup Primary Admin Account' : mode === 'signin' ? 'Sign in to your account' : 'Create Standard User Account'}
         </h2>
         <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1.5rem', textAlign: 'center' }}>
-          {!hasAdmin ? 'First run detected. Create root administrator user.' : mode === 'signin' ? 'Enter credentials to access portal' : 'New accounts require admin approval before login'}
+          {!hasAdmin ? 'First run detected. Create primary admin user.' : mode === 'signin' ? 'Enter credentials to access portal' : 'New accounts require admin approval'}
         </p>
 
         {error && (
@@ -159,17 +177,23 @@ export function Auth({ onLoginSuccess }: AuthProps) {
             style={{ backgroundColor: '#2563eb', color: '#ffffff', border: 'none', borderRadius: '8px', padding: '0.75rem', fontWeight: '600', fontSize: '0.875rem', cursor: 'pointer', marginTop: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
           >
             {mode === 'signin' ? <LogIn style={{ width: '18px', height: '18px' }} /> : <UserPlus style={{ width: '18px', height: '18px' }} />}
-            {!hasAdmin ? 'Create Primary Admin' : mode === 'signin' ? 'Sign In' : 'Register User Account'}
+            {!hasAdmin ? 'Create Primary Admin' : mode === 'signin' ? 'Sign In' : 'Register Account'}
           </button>
         </form>
 
-        <div style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.85rem', color: '#64748b' }}>
-          {mode === 'signin' ? (
-            <span>Need an account? <button onClick={() => { setMode('signup'); setError(''); }} style={{ background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer', fontWeight: '600' }}>Sign Up</button></span>
-          ) : (
-            <span>Already registered? <button onClick={() => { setMode('signin'); setError(''); }} style={{ background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer', fontWeight: '600' }}>Sign In</button></span>
-          )}
-        </div>
+        {hasAdmin && (
+          <div style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.85rem', color: '#64748b' }}>
+            {mode === 'signin' ? (
+              <span>Need an account? {allowRegistrations ? (
+                <button onClick={() => { setMode('signup'); setError(''); }} style={{ background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer', fontWeight: '600' }}>Sign Up</button>
+              ) : (
+                <span style={{ color: '#ef4444', marginLeft: '0.25rem' }}>(Registrations Disabled)</span>
+              )}</span>
+            ) : (
+              <span>Already registered? <button onClick={() => { setMode('signin'); setError(''); }} style={{ background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer', fontWeight: '600' }}>Sign In</button></span>
+            )}
+          </div>
+        )}
 
       </div>
     </div>
