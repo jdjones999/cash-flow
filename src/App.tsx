@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
-  LayoutDashboard, DollarSign, Calendar, AlertTriangle, 
-  TrendingUp, Wallet, Plus, Trash2, Edit3, Check, X
+  LayoutDashboard, DollarSign, Calendar as CalendarIcon, AlertTriangle, 
+  Wallet, Plus, Trash2, Edit3, Check, X, LogIn, LogOut, ChevronLeft, ChevronRight
 } from 'lucide-react';
 
 interface CashFlowItem {
@@ -11,29 +11,46 @@ interface CashFlowItem {
   category: 'income' | 'subscription' | 'unexpected_expense';
   billingCycle: 'monthly' | 'yearly' | 'one_time';
   tag: string;
+  dueDate?: number; // Day of the month (1-31)
 }
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'income' | 'subscriptions' | 'unexpected'>('dashboard');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'income' | 'subscriptions' | 'unexpected' | 'calendar'>('dashboard');
 
   const [items, setItems] = useState<CashFlowItem[]>([
-    { id: '1', name: 'Base Salary', amount: 4500.00, category: 'income', billingCycle: 'monthly', tag: 'Primary' },
-    { id: '2', name: 'Dividend Payout', amount: 123.00, category: 'income', billingCycle: 'monthly', tag: 'Investment' },
-    { id: '3', name: 'Server Hosting', amount: 28.38, category: 'subscription', billingCycle: 'monthly', tag: 'Infrastructure' },
-    { id: '4', name: 'Cloud Storage', amount: 9.99, category: 'subscription', billingCycle: 'monthly', tag: 'Software' },
-    { id: '5', name: 'Emergency Equipment Repair', amount: 350.00, category: 'unexpected_expense', billingCycle: 'one_time', tag: 'Emergency' },
+    { id: '1', name: 'Base Salary', amount: 4500.00, category: 'income', billingCycle: 'monthly', tag: 'Primary', dueDate: 1 },
+    { id: '2', name: 'Dividend Payout', amount: 123.00, category: 'income', billingCycle: 'monthly', tag: 'Investment', dueDate: 15 },
+    { id: '3', name: 'Server Hosting', amount: 28.38, category: 'subscription', billingCycle: 'monthly', tag: 'Infrastructure', dueDate: 5 },
+    { id: '4', name: 'Cloud Storage', amount: 9.99, category: 'subscription', billingCycle: 'monthly', tag: 'Software', dueDate: 12 },
+    { id: '5', name: 'Emergency Equipment Repair', amount: 350.00, category: 'unexpected_expense', billingCycle: 'one_time', tag: 'Emergency', dueDate: 20 },
   ]);
 
   // Form State
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
   const [tag, setTag] = useState('');
+  const [dueDate, setDueDate] = useState('1');
 
   // Editing State
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [editAmount, setEditAmount] = useState('');
   const [editTag, setEditTag] = useState('');
+
+  // Calendar State
+  const [selectedDay, setSelectedDay] = useState<number | null>(new Date().getDate());
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (email) {
+      setIsAuthenticated(true);
+      setActiveTab('dashboard');
+    }
+  };
 
   const calculateMonthly = (item: CashFlowItem) => {
     if (item.billingCycle === 'yearly') return item.amount / 12;
@@ -64,6 +81,7 @@ export function App() {
       category,
       billingCycle,
       tag: tag || 'General',
+      dueDate: parseInt(dueDate) || 1,
     };
 
     setItems([...items, newItem]);
@@ -93,12 +111,64 @@ export function App() {
     setItems(items.filter(item => item.id !== id));
   };
 
+  // Login View
+  if (!isAuthenticated) {
+    return (
+      <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#0b0f19', justifyContent: 'center', alignItems: 'center', fontFamily: 'Inter, system-ui, sans-serif' }}>
+        <div style={{ backgroundColor: '#0f172a', padding: '2.5rem', borderRadius: '16px', border: '1px solid #1e293b', width: '100%', maxWidth: '400px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', justifyContent: 'center', marginBottom: '2rem' }}>
+            <div style={{ backgroundColor: '#2563eb', padding: '0.6rem', borderRadius: '10px', display: 'flex' }}>
+              <Wallet style={{ color: '#ffffff', width: '24px', height: '24px' }} />
+            </div>
+            <span style={{ fontSize: '1.5rem', fontWeight: '700', color: '#f8fafc' }}>Cash Flow</span>
+          </div>
+
+          <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#f8fafc', marginBottom: '0.5rem', textAlign: 'center' }}>Sign in to your account</h2>
+          <p style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '1.5rem', textAlign: 'center' }}>Enter your email to access your financial dashboard</p>
+
+          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: '#94a3b8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Email Address</label>
+              <input
+                type="email"
+                required
+                placeholder="user@neoconn.local"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                style={{ width: '100%', backgroundColor: '#131b2e', border: '1px solid #334155', borderRadius: '8px', padding: '0.75rem', color: '#f8fafc', fontSize: '0.875rem', boxSizing: 'border-box' }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: '#94a3b8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Password</label>
+              <input
+                type="password"
+                required
+                placeholder="••••••••"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                style={{ width: '100%', backgroundColor: '#131b2e', border: '1px solid #334155', borderRadius: '8px', padding: '0.75rem', color: '#f8fafc', fontSize: '0.875rem', boxSizing: 'border-box' }}
+              />
+            </div>
+
+            <button
+              type="submit"
+              style={{ backgroundColor: '#2563eb', color: '#ffffff', border: 'none', borderRadius: '8px', padding: '0.75rem', fontWeight: '600', fontSize: '0.875rem', cursor: 'pointer', marginTop: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+            >
+              <LogIn style={{ width: '18px', height: '18px' }} /> Sign In
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   const renderItemTable = (filteredItems: CashFlowItem[], categoryName: string, categoryType: CashFlowItem['category'], defaultCycle: CashFlowItem['billingCycle']) => (
     <div style={{ backgroundColor: '#131b2e', borderRadius: '12px', border: '1px solid #1e293b', padding: '1.5rem', marginTop: '1.5rem' }}>
       <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#f8fafc', marginBottom: '1rem' }}>Manage {categoryName}</h3>
       
-      {/* Add New Entry Form */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem', marginBottom: '1.5rem', backgroundColor: '#0b0f19', padding: '1rem', borderRadius: '8px', border: '1px solid #1e293b' }}>
+      {/* Add Entry Form */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.75rem', marginBottom: '1.5rem', backgroundColor: '#0b0f19', padding: '1rem', borderRadius: '8px', border: '1px solid #1e293b' }}>
         <input
           type="text"
           placeholder="Name"
@@ -121,6 +191,15 @@ export function App() {
           onChange={e => setTag(e.target.value)}
           style={{ backgroundColor: '#131b2e', border: '1px solid #334155', borderRadius: '6px', padding: '0.5rem 0.8rem', color: '#f8fafc', fontSize: '0.875rem' }}
         />
+        <input
+          type="number"
+          min="1"
+          max="31"
+          placeholder="Due Day (1-31)"
+          value={dueDate}
+          onChange={e => setDueDate(e.target.value)}
+          style={{ backgroundColor: '#131b2e', border: '1px solid #334155', borderRadius: '6px', padding: '0.5rem 0.8rem', color: '#f8fafc', fontSize: '0.875rem' }}
+        />
         <button
           onClick={() => handleAddItem(categoryType, defaultCycle)}
           style={{ backgroundColor: '#2563eb', color: '#ffffff', border: 'none', borderRadius: '6px', padding: '0.5rem 1rem', fontWeight: '600', fontSize: '0.875rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
@@ -135,6 +214,7 @@ export function App() {
           <tr style={{ borderBottom: '1px solid #1e293b', color: '#64748b' }}>
             <th style={{ padding: '0.75rem' }}>Name</th>
             <th style={{ padding: '0.75rem' }}>Tag</th>
+            <th style={{ padding: '0.75rem' }}>Day of Month</th>
             <th style={{ padding: '0.75rem', textAlign: 'right' }}>Amount ($)</th>
             <th style={{ padding: '0.75rem', textAlign: 'center' }}>Actions</th>
           </tr>
@@ -150,6 +230,7 @@ export function App() {
                   <td style={{ padding: '0.75rem' }}>
                     <input type="text" value={editTag} onChange={e => setEditTag(e.target.value)} style={{ backgroundColor: '#0b0f19', border: '1px solid #334155', color: '#fff', borderRadius: '4px', padding: '0.3rem 0.5rem', width: '90%' }} />
                   </td>
+                  <td style={{ padding: '0.75rem', color: '#94a3b8' }}>{item.dueDate || 1}</td>
                   <td style={{ padding: '0.75rem', textAlign: 'right' }}>
                     <input type="number" step="0.01" value={editAmount} onChange={e => setEditAmount(e.target.value)} style={{ backgroundColor: '#0b0f19', border: '1px solid #334155', color: '#fff', borderRadius: '4px', padding: '0.3rem 0.5rem', width: '90px', textAlign: 'right' }} />
                   </td>
@@ -164,6 +245,7 @@ export function App() {
                   <td style={{ padding: '0.75rem' }}>
                     <span style={{ backgroundColor: '#1e293b', color: '#94a3b8', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem' }}>{item.tag}</span>
                   </td>
+                  <td style={{ padding: '0.75rem', color: '#94a3b8' }}>Day {item.dueDate || 1}</td>
                   <td style={{ padding: '0.75rem', textAlign: 'right', fontWeight: '700', color: categoryType === 'income' ? '#4ade80' : '#f87171' }}>
                     ${item.amount.toFixed(2)}
                   </td>
@@ -180,10 +262,100 @@ export function App() {
     </div>
   );
 
+  const renderCalendar = () => {
+    const days = Array.from({ length: 31 }, (_, i) => i + 1);
+    const selectedDayItems = items.filter(i => i.dueDate === selectedDay);
+
+    return (
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem', marginTop: '1rem' }}>
+        <div style={{ backgroundColor: '#131b2e', borderRadius: '12px', border: '1px solid #1e293b', padding: '1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#f8fafc', margin: 0 }}>August 2026</h3>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button style={{ backgroundColor: '#0b0f19', border: '1px solid #334155', color: '#fff', borderRadius: '6px', padding: '0.4rem', cursor: 'pointer' }}><ChevronLeft style={{ width: '16px', height: '16px' }} /></button>
+              <button style={{ backgroundColor: '#0b0f19', border: '1px solid #334155', color: '#fff', borderRadius: '6px', padding: '0.4rem', cursor: 'pointer' }}><ChevronRight style={{ width: '16px', height: '16px' }} /></button>
+            </div>
+          </div>
+
+          {/* Grid Headers */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0.5rem', textTransform: 'uppercase', fontSize: '0.75rem', color: '#64748b', fontWeight: '600', textAlign: 'center', marginBottom: '0.5rem' }}>
+            <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+          </div>
+
+          {/* Day Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0.5rem' }}>
+            {days.map(day => {
+              const dayItems = items.filter(i => i.dueDate === day);
+              const isSelected = selectedDay === day;
+
+              return (
+                <div
+                  key={day}
+                  onClick={() => setSelectedDay(day)}
+                  style={{
+                    backgroundColor: isSelected ? '#1e293b' : '#0b0f19',
+                    border: isSelected ? '1px solid #2563eb' : '1px solid #1e293b',
+                    borderRadius: '8px',
+                    minHeight: '75px',
+                    padding: '0.5rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justify: 'space-between',
+                  }}
+                >
+                  <span style={{ fontSize: '0.85rem', fontWeight: '600', color: isSelected ? '#38bdf8' : '#94a3b8' }}>{day}</span>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px' }}>
+                    {dayItems.map(item => (
+                      <div
+                        key={item.id}
+                        style={{
+                          width: '8px',
+                          height: '8px',
+                          borderRadius: '50%',
+                          backgroundColor: item.category === 'income' ? '#4ade80' : item.category === 'subscription' ? '#f87171' : '#fbbf24'
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Selected Day Details */}
+        <div style={{ backgroundColor: '#131b2e', borderRadius: '12px', border: '1px solid #1e293b', padding: '1.5rem' }}>
+          <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#f8fafc', marginBottom: '1rem' }}>
+            Scheduled for Day {selectedDay}
+          </h3>
+
+          {selectedDayItems.length === 0 ? (
+            <p style={{ color: '#64748b', fontSize: '0.875rem' }}>No payments or deposits scheduled for this date.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {selectedDayItems.map(item => (
+                <div key={item.id} style={{ backgroundColor: '#0b0f19', padding: '0.85rem', borderRadius: '8px', border: '1px solid #1e293b', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ color: '#f8fafc', fontWeight: '600', fontSize: '0.9rem' }}>{item.name}</div>
+                    <span style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'capitalize' }}>{item.category.replace('_', ' ')}</span>
+                  </div>
+                  <span style={{ fontWeight: '700', fontSize: '0.9rem', color: item.category === 'income' ? '#4ade80' : '#f87171' }}>
+                    ${item.amount.toFixed(2)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#0b0f19', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
       
-      {/* Sidebar Menu */}
+      {/* Sidebar */}
       <div style={{ width: '250px', backgroundColor: '#0f172a', borderRight: '1px solid #1e293b', padding: '1.5rem 1rem', display: 'flex', flexDirection: 'column' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', paddingLeft: '0.5rem', marginBottom: '2.5rem' }}>
           <div style={{ backgroundColor: '#2563eb', padding: '0.5rem', borderRadius: '8px', display: 'flex' }}>
@@ -227,7 +399,7 @@ export function App() {
               color: activeTab === 'subscriptions' ? '#ffffff' : '#94a3b8'
             }}
           >
-            <Calendar style={{ width: '18px', height: '18px' }} /> Subscriptions / Recurring
+            <CalendarIcon style={{ width: '18px', height: '18px' }} /> Subscriptions / Recurring
           </button>
 
           <button
@@ -240,11 +412,25 @@ export function App() {
           >
             <AlertTriangle style={{ width: '18px', height: '18px' }} /> One-Time Expenses
           </button>
+
+          <button
+            onClick={() => setActiveTab('calendar')}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 0.85rem', borderRadius: '8px', border: 'none', fontSize: '0.875rem', fontWeight: '600', cursor: 'pointer', textAlign: 'left',
+              backgroundColor: activeTab === 'calendar' ? '#2563eb' : 'transparent',
+              color: activeTab === 'calendar' ? '#ffffff' : '#94a3b8'
+            }}
+          >
+            <CalendarIcon style={{ width: '18px', height: '18px' }} /> Calendar
+          </button>
         </nav>
 
-        <div style={{ backgroundColor: '#131b2e', padding: '0.75rem', borderRadius: '8px', border: '1px solid #1e293b', fontSize: '0.8rem', color: '#64748b' }}>
-          Port 9600 • Live Sync
-        </div>
+        <button
+          onClick={() => setIsAuthenticated(false)}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#131b2e', border: '1px solid #1e293b', color: '#ef4444', padding: '0.6rem 0.85rem', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: '600', marginTop: 'auto' }}
+        >
+          <LogOut style={{ width: '16px', height: '16px' }} /> Sign Out
+        </button>
       </div>
 
       {/* Main Content Area */}
@@ -254,40 +440,34 @@ export function App() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', borderBottom: '1px solid #1e293b', paddingBottom: '1rem' }}>
           <div>
             <h1 style={{ fontSize: '1.75rem', fontWeight: '700', color: '#f8fafc', margin: 0, textTransform: 'capitalize' }}>
-              {activeTab === 'subscriptions' ? 'Subscriptions / Recurring' : activeTab === 'unexpected' ? 'One-Time Expenses' : activeTab === 'income' ? 'Income & Base Salary' : 'Dashboard'}
+              {activeTab === 'subscriptions' ? 'Subscriptions / Recurring' : activeTab === 'unexpected' ? 'One-Time Expenses' : activeTab === 'income' ? 'Income & Base Salary' : activeTab}
             </h1>
-            <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Manage inputs, edit values, and track active balances</span>
-          </div>
-        </div>
-
-        {/* Top Overview Cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
-          <div style={{ backgroundColor: '#131b2e', padding: '1.25rem', borderRadius: '12px', border: '1px solid #1e293b' }}>
-            <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Total Monthly Income</span>
-            <div style={{ fontSize: '1.6rem', fontWeight: '700', color: '#4ade80', marginTop: '0.25rem' }}>${totalIncome.toFixed(2)}</div>
-          </div>
-
-          <div style={{ backgroundColor: '#131b2e', padding: '1.25rem', borderRadius: '12px', border: '1px solid #1e293b' }}>
-            <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Recurring Subscriptions</span>
-            <div style={{ fontSize: '1.6rem', fontWeight: '700', color: '#f87171', marginTop: '0.25rem' }}>${totalSubscriptions.toFixed(2)}</div>
-          </div>
-
-          <div style={{ backgroundColor: '#131b2e', padding: '1.25rem', borderRadius: '12px', border: '1px solid #1e293b' }}>
-            <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>One-Time Expenses</span>
-            <div style={{ fontSize: '1.6rem', fontWeight: '700', color: '#fbbf24', marginTop: '0.25rem' }}>${totalUnexpected.toFixed(2)}</div>
-          </div>
-
-          <div style={{ backgroundColor: '#131b2e', padding: '1.25rem', borderRadius: '12px', border: netCashFlow >= 0 ? '1px solid #2563eb' : '1px solid #ef4444' }}>
-            <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Net Cash Flow</span>
-            <div style={{ fontSize: '1.6rem', fontWeight: '700', color: netCashFlow >= 0 ? '#38bdf8' : '#ef4444', marginTop: '0.25rem' }}>
-              ${netCashFlow.toFixed(2)}
-            </div>
+            <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Logged in as {email || 'user'}</span>
           </div>
         </div>
 
         {/* Dynamic Section Rendering */}
         {activeTab === 'dashboard' && (
           <div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
+              <div style={{ backgroundColor: '#131b2e', padding: '1.25rem', borderRadius: '12px', border: '1px solid #1e293b' }}>
+                <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Total Income</span>
+                <div style={{ fontSize: '1.6rem', fontWeight: '700', color: '#4ade80', marginTop: '0.25rem' }}>${totalIncome.toFixed(2)}</div>
+              </div>
+              <div style={{ backgroundColor: '#131b2e', padding: '1.25rem', borderRadius: '12px', border: '1px solid #1e293b' }}>
+                <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Recurring Subscriptions</span>
+                <div style={{ fontSize: '1.6rem', fontWeight: '700', color: '#f87171', marginTop: '0.25rem' }}>${totalSubscriptions.toFixed(2)}</div>
+              </div>
+              <div style={{ backgroundColor: '#131b2e', padding: '1.25rem', borderRadius: '12px', border: '1px solid #1e293b' }}>
+                <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>One-Time Expenses</span>
+                <div style={{ fontSize: '1.6rem', fontWeight: '700', color: '#fbbf24', marginTop: '0.25rem' }}>${totalUnexpected.toFixed(2)}</div>
+              </div>
+              <div style={{ backgroundColor: '#131b2e', padding: '1.25rem', borderRadius: '12px', border: netCashFlow >= 0 ? '1px solid #2563eb' : '1px solid #ef4444' }}>
+                <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Net Cash Flow</span>
+                <div style={{ fontSize: '1.6rem', fontWeight: '700', color: netCashFlow >= 0 ? '#38bdf8' : '#ef4444', marginTop: '0.25rem' }}>${netCashFlow.toFixed(2)}</div>
+              </div>
+            </div>
+
             {renderItemTable(items.filter(i => i.category === 'income'), 'Income & Base Salary', 'income', 'monthly')}
             {renderItemTable(items.filter(i => i.category === 'subscription'), 'Subscriptions / Recurring', 'subscription', 'monthly')}
             {renderItemTable(items.filter(i => i.category === 'unexpected_expense'), 'One-Time Expenses', 'unexpected_expense', 'one_time')}
@@ -297,6 +477,7 @@ export function App() {
         {activeTab === 'income' && renderItemTable(items.filter(i => i.category === 'income'), 'Income & Base Salary', 'income', 'monthly')}
         {activeTab === 'subscriptions' && renderItemTable(items.filter(i => i.category === 'subscription'), 'Subscriptions / Recurring', 'subscription', 'monthly')}
         {activeTab === 'unexpected' && renderItemTable(items.filter(i => i.category === 'unexpected_expense'), 'One-Time Expenses', 'unexpected_expense', 'one_time')}
+        {activeTab === 'calendar' && renderCalendar()}
 
       </div>
     </div>
