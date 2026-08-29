@@ -32,8 +32,8 @@ app.get('/api/auth/status', (req, res) => {
 
 app.use(express.static(path.join(__dirname, 'dist')));
 
-// Express 5 catch-all syntax
-app.get('(.*)', (req, res) => {
+// Express 5 catch-all named parameter
+app.get('*path', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
