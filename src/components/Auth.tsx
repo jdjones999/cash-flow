@@ -6,7 +6,7 @@ interface AuthProps {
   onLoginSuccess: (user: User) => void;
 }
 
-const API_BASE = 'http://192.168.0.3:3001/api';
+const API_BASE = '/api';
 
 export function Auth({ onLoginSuccess }: AuthProps) {
   const [hasAdmin, setHasAdmin] = useState<boolean>(true);

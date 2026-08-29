@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 9600;
 const DB_FILE = path.join(__dirname, 'data_store.json');
 
 app.use(cors());
@@ -21,8 +21,8 @@ if (!fs.existsSync(DB_FILE)) {
 const readData = () => JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
 const writeData = (data) => fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
 
-// Get Auth Context (Users summary & Settings)
-app.get('/api/auth/status', (e, res) => {
+// API Routes
+app.get('/api/auth/status', (req, res) => {
   const data = readData();
   res.json({
     hasAdmin: data.users.some(u => u.role === 'admin'),
@@ -30,13 +30,11 @@ app.get('/api/auth/status', (e, res) => {
   });
 });
 
-// Get Settings (Admin)
 app.get('/api/admin/settings', (req, res) => {
   const data = readData();
   res.json(data.settings);
 });
 
-// Update Settings (Admin)
 app.post('/api/admin/settings', (req, res) => {
   const data = readData();
   data.settings = { ...data.settings, ...req.body };
@@ -44,20 +42,17 @@ app.post('/api/admin/settings', (req, res) => {
   res.json(data.settings);
 });
 
-// Get All Users (Admin)
 app.get('/api/users', (req, res) => {
   const data = readData();
   res.json(data.users);
 });
 
-// Register User
 app.post('/api/register', (req, res) => {
   const { email, password } = req.body;
   const data = readData();
 
   const hasAdmin = data.users.some(u => u.role === 'admin');
 
-  // If admin exists, verify registrations are allowed
   if (hasAdmin && !data.settings.allowRegistrations) {
     return res.status(403).json({ error: 'New user registration is currently disabled by administrator.' });
   }
@@ -72,7 +67,7 @@ app.post('/api/register', (req, res) => {
     email,
     passwordHash: password,
     role: !hasAdmin ? 'admin' : 'user',
-    isVerified: !hasAdmin, // First admin is auto-verified
+    isVerified: !hasAdmin,
     createdAt: new Date().toISOString()
   };
 
@@ -82,7 +77,6 @@ app.post('/api/register', (req, res) => {
   res.json({ user: newUser });
 });
 
-// Login User
 app.post('/api/login', (req, res) => {
   const { email, password } = req.body;
   const data = readData();
@@ -100,7 +94,6 @@ app.post('/api/login', (req, res) => {
   res.json({ user });
 });
 
-// Toggle Verification
 app.post('/api/admin/users/verify', (req, res) => {
   const { id } = req.body;
   const data = readData();
@@ -111,4 +104,12 @@ app.post('/api/admin/users/verify', (req, res) => {
   res.json(data.users);
 });
 
-app.listen(PORT, () => console.log(`Backend server running on port ${PORT}`));
+// Serve Vite build output statically
+app.use(express.static(path.join(__dirname, 'dist')));
+
+// Fallback to React index.html for SPA routing
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
+app.listen(PORT, () => console.log(`Unified server running on port ${PORT}`));

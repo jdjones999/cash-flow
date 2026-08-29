@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { User } from '../types/auth';
 import { Check, X, Shield, UserCheck, Clock, ToggleLeft, ToggleRight } from 'lucide-react';
 
-const API_BASE = 'http://192.168.0.3:3001/api';
+const API_BASE = '/api';
 
 export function AdminSettings() {
   const [users, setUsers] = useState<User[]>([]);
