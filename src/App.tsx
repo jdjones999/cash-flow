@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { 
   LayoutDashboard, DollarSign, Calendar as CalendarIcon, AlertTriangle, 
-  Wallet, Plus, Trash2, Edit3, Check, X, LogIn, LogOut, ChevronLeft, ChevronRight, TrendingUp
+  Wallet, Plus, Trash2, Edit3, Check, X, LogOut, ChevronLeft, ChevronRight, TrendingUp, Settings
 } from 'lucide-react';
+import { User } from './types/auth';
+import { Auth } from './components/Auth';
+import { AdminSettings } from './components/AdminSettings';
 
 interface CashFlowItem {
   id: string;
@@ -15,11 +18,8 @@ interface CashFlowItem {
 }
 
 export function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'income' | 'subscriptions' | 'unexpected' | 'calendar'>('dashboard');
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'income' | 'subscriptions' | 'unexpected' | 'calendar' | 'settings'>('dashboard');
 
   const [items, setItems] = useState<CashFlowItem[]>([
     { id: '1', name: 'Base Salary', amount: 4500.00, category: 'income', billingCycle: 'monthly', tag: 'Primary', dueDate: 1 },
@@ -44,14 +44,6 @@ export function App() {
   // Calendar State
   const [selectedDay, setSelectedDay] = useState<number | null>(new Date().getDate());
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (email) {
-      setIsAuthenticated(true);
-      setActiveTab('dashboard');
-    }
-  };
-
   const calculateMonthly = (item: CashFlowItem) => {
     if (item.billingCycle === 'yearly') return item.amount / 12;
     return item.amount;
@@ -72,7 +64,6 @@ export function App() {
   const totalExpenses = totalSubscriptions + totalUnexpected;
   const netCashFlow = totalIncome - totalExpenses;
 
-  // Find most expensive item
   const mostExpensive = items.length > 0 
     ? [...items].sort((a, b) => b.amount - a.amount)[0]
     : null;
@@ -117,55 +108,8 @@ export function App() {
     setItems(items.filter(item => item.id !== id));
   };
 
-  if (!isAuthenticated) {
-    return (
-      <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#0b0f19', justifyContent: 'center', alignItems: 'center', fontFamily: 'Inter, system-ui, sans-serif' }}>
-        <div style={{ backgroundColor: '#0f172a', padding: '2.5rem', borderRadius: '16px', border: '1px solid #1e293b', width: '100%', maxWidth: '400px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', justifyContent: 'center', marginBottom: '2rem' }}>
-            <div style={{ backgroundColor: '#2563eb', padding: '0.6rem', borderRadius: '10px', display: 'flex' }}>
-              <Wallet style={{ color: '#ffffff', width: '24px', height: '24px' }} />
-            </div>
-            <span style={{ fontSize: '1.5rem', fontWeight: '700', color: '#f8fafc' }}>Cash Flow</span>
-          </div>
-
-          <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#f8fafc', marginBottom: '0.5rem', textAlign: 'center' }}>Sign in to your account</h2>
-          <p style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '1.5rem', textAlign: 'center' }}>Enter your email to access your financial dashboard</p>
-
-          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: '#94a3b8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Email Address</label>
-              <input
-                type="email"
-                required
-                placeholder="user@neoconn.local"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                style={{ width: '100%', backgroundColor: '#131b2e', border: '1px solid #334155', borderRadius: '8px', padding: '0.75rem', color: '#f8fafc', fontSize: '0.875rem', boxSizing: 'border-box' }}
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: '#94a3b8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Password</label>
-              <input
-                type="password"
-                required
-                placeholder="••••••••"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                style={{ width: '100%', backgroundColor: '#131b2e', border: '1px solid #334155', borderRadius: '8px', padding: '0.75rem', color: '#f8fafc', fontSize: '0.875rem', boxSizing: 'border-box' }}
-              />
-            </div>
-
-            <button
-              type="submit"
-              style={{ backgroundColor: '#2563eb', color: '#ffffff', border: 'none', borderRadius: '8px', padding: '0.75rem', fontWeight: '600', fontSize: '0.875rem', cursor: 'pointer', marginTop: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-            >
-              <LogIn style={{ width: '18px', height: '18px' }} /> Sign In
-            </button>
-          </form>
-        </div>
-      </div>
-    );
+  if (!currentUser) {
+    return <Auth onLoginSuccess={(user) => { setCurrentUser(user); setActiveTab('dashboard'); }} />;
   }
 
   const renderDashboardOverview = () => {
@@ -173,28 +117,20 @@ export function App() {
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-        
-        {/* Cost History Chart & Budget Overview Row */}
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
-          
-          {/* Cost History Visualizer */}
           <div style={{ backgroundColor: '#131b2e', borderRadius: '12px', border: '1px solid #1e293b', padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
               <TrendingUp style={{ color: '#38bdf8', width: '20px', height: '20px' }} />
               <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#f8fafc', margin: 0 }}>Cost History</h3>
             </div>
 
-            {/* Simulated Chart Container */}
             <div style={{ height: '220px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', padding: '0 1rem 1rem 1rem', borderBottom: '1px solid #1e293b', position: 'relative' }}>
-              
-              {/* Y-Axis Gridlines */}
               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: '2rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', opacity: 0.1, pointerEvents: 'none' }}>
                 <div style={{ borderTop: '1px solid #fff' }}></div>
                 <div style={{ borderTop: '1px solid #fff' }}></div>
                 <div style={{ borderTop: '1px solid #fff' }}></div>
               </div>
 
-              {/* Data Point Marker */}
               <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 1 }}>
                 <div style={{ backgroundColor: '#1e293b', border: '1px solid #3b82f6', color: '#f8fafc', padding: '0.4rem 0.75rem', borderRadius: '6px', fontSize: '0.75rem', marginBottom: '0.75rem', textAlign: 'center', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.5)' }}>
                   <div>2026/08</div>
@@ -206,7 +142,6 @@ export function App() {
             </div>
           </div>
 
-          {/* Budget Overview Card */}
           <div style={{ backgroundColor: '#131b2e', borderRadius: '12px', border: '1px solid #1e293b', padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             <div>
               <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#f8fafc', marginBottom: '1.5rem' }}>Budget Overview</h3>
@@ -222,7 +157,6 @@ export function App() {
                 </div>
               </div>
 
-              {/* Progress Bar */}
               <div style={{ width: '100%', backgroundColor: '#0b0f19', borderRadius: '999px', height: '8px', overflow: 'hidden', marginBottom: '0.5rem' }}>
                 <div style={{ width: `${budgetUsedPercent}%`, backgroundColor: '#2563eb', height: '100%', borderRadius: '999px' }}></div>
               </div>
@@ -232,7 +166,6 @@ export function App() {
                 <span>Remaining: ${(totalIncome - totalExpenses).toFixed(2)}</span>
               </div>
 
-              {/* Most Expensive Item Highlight */}
               {mostExpensive && (
                 <div style={{ backgroundColor: '#0b0f19', border: '1px solid #1e293b', padding: '0.85rem 1rem', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
@@ -249,7 +182,6 @@ export function App() {
               <span style={{ fontWeight: '700', color: '#f8fafc' }}>{items.filter(i => i.category === 'subscription').length}</span>
             </div>
           </div>
-
         </div>
       </div>
     );
@@ -259,7 +191,6 @@ export function App() {
     <div style={{ backgroundColor: '#131b2e', borderRadius: '12px', border: '1px solid #1e293b', padding: '1.5rem', marginTop: '1.5rem' }}>
       <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#f8fafc', marginBottom: '1rem' }}>Manage {categoryName}</h3>
       
-      {/* Add Entry Form */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.75rem', marginBottom: '1.5rem', backgroundColor: '#0b0f19', padding: '1rem', borderRadius: '8px', border: '1px solid #1e293b' }}>
         <input
           type="text"
@@ -300,7 +231,6 @@ export function App() {
         </button>
       </div>
 
-      {/* Item List */}
       <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
         <thead>
           <tr style={{ borderBottom: '1px solid #1e293b', color: '#64748b' }}>
@@ -512,10 +442,24 @@ export function App() {
           >
             <CalendarIcon style={{ width: '18px', height: '18px' }} /> Calendar
           </button>
+
+          {/* Admin Only Tab */}
+          {currentUser.role === 'admin' && (
+            <button
+              onClick={() => setActiveTab('settings')}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 0.85rem', borderRadius: '8px', border: 'none', fontSize: '0.875rem', fontWeight: '600', cursor: 'pointer', textAlign: 'left', marginTop: '1rem',
+                backgroundColor: activeTab === 'settings' ? '#2563eb' : 'transparent',
+                color: activeTab === 'settings' ? '#ffffff' : '#38bdf8'
+              }}
+            >
+              <Settings style={{ width: '18px', height: '18px' }} /> Admin Settings
+            </button>
+          )}
         </nav>
 
         <button
-          onClick={() => setIsAuthenticated(false)}
+          onClick={() => setCurrentUser(null)}
           style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#131b2e', border: '1px solid #1e293b', color: '#ef4444', padding: '0.6rem 0.85rem', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: '600', marginTop: 'auto' }}
         >
           <LogOut style={{ width: '16px', height: '16px' }} /> Sign Out
@@ -531,29 +475,31 @@ export function App() {
             <h1 style={{ fontSize: '1.75rem', fontWeight: '700', color: '#f8fafc', margin: 0, textTransform: 'capitalize' }}>
               {activeTab === 'subscriptions' ? 'Subscriptions / Recurring' : activeTab === 'unexpected' ? 'One-Time Expenses' : activeTab === 'income' ? 'Income & Base Salary' : activeTab}
             </h1>
-            <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Logged in as {email || 'user'}</span>
+            <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Logged in as {currentUser.email} ({currentUser.role})</span>
           </div>
         </div>
 
-        {/* Global Overview Cards (Always Visible) */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
-          <div style={{ backgroundColor: '#131b2e', padding: '1.25rem', borderRadius: '12px', border: '1px solid #1e293b' }}>
-            <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Total Income</span>
-            <div style={{ fontSize: '1.6rem', fontWeight: '700', color: '#4ade80', marginTop: '0.25rem' }}>${totalIncome.toFixed(2)}</div>
+        {/* Global Overview Cards */}
+        {activeTab !== 'settings' && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
+            <div style={{ backgroundColor: '#131b2e', padding: '1.25rem', borderRadius: '12px', border: '1px solid #1e293b' }}>
+              <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Total Income</span>
+              <div style={{ fontSize: '1.6rem', fontWeight: '700', color: '#4ade80', marginTop: '0.25rem' }}>${totalIncome.toFixed(2)}</div>
+            </div>
+            <div style={{ backgroundColor: '#131b2e', padding: '1.25rem', borderRadius: '12px', border: '1px solid #1e293b' }}>
+              <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Recurring Subscriptions</span>
+              <div style={{ fontSize: '1.6rem', fontWeight: '700', color: '#f87171', marginTop: '0.25rem' }}>${totalSubscriptions.toFixed(2)}</div>
+            </div>
+            <div style={{ backgroundColor: '#131b2e', padding: '1.25rem', borderRadius: '12px', border: '1px solid #1e293b' }}>
+              <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>One-Time Expenses</span>
+              <div style={{ fontSize: '1.6rem', fontWeight: '700', color: '#fbbf24', marginTop: '0.25rem' }}>${totalUnexpected.toFixed(2)}</div>
+            </div>
+            <div style={{ backgroundColor: '#131b2e', padding: '1.25rem', borderRadius: '12px', border: netCashFlow >= 0 ? '1px solid #2563eb' : '1px solid #ef4444' }}>
+              <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Net Cash Flow</span>
+              <div style={{ fontSize: '1.6rem', fontWeight: '700', color: netCashFlow >= 0 ? '#38bdf8' : '#ef4444', marginTop: '0.25rem' }}>${netCashFlow.toFixed(2)}</div>
+            </div>
           </div>
-          <div style={{ backgroundColor: '#131b2e', padding: '1.25rem', borderRadius: '12px', border: '1px solid #1e293b' }}>
-            <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Recurring Subscriptions</span>
-            <div style={{ fontSize: '1.6rem', fontWeight: '700', color: '#f87171', marginTop: '0.25rem' }}>${totalSubscriptions.toFixed(2)}</div>
-          </div>
-          <div style={{ backgroundColor: '#131b2e', padding: '1.25rem', borderRadius: '12px', border: '1px solid #1e293b' }}>
-            <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>One-Time Expenses</span>
-            <div style={{ fontSize: '1.6rem', fontWeight: '700', color: '#fbbf24', marginTop: '0.25rem' }}>${totalUnexpected.toFixed(2)}</div>
-          </div>
-          <div style={{ backgroundColor: '#131b2e', padding: '1.25rem', borderRadius: '12px', border: netCashFlow >= 0 ? '1px solid #2563eb' : '1px solid #ef4444' }}>
-            <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Net Cash Flow</span>
-            <div style={{ fontSize: '1.6rem', fontWeight: '700', color: netCashFlow >= 0 ? '#38bdf8' : '#ef4444', marginTop: '0.25rem' }}>${netCashFlow.toFixed(2)}</div>
-          </div>
-        </div>
+        )}
 
         {/* Tab Specific Content */}
         {activeTab === 'dashboard' && renderDashboardOverview()}
@@ -561,6 +507,7 @@ export function App() {
         {activeTab === 'subscriptions' && renderItemTable(items.filter(i => i.category === 'subscription'), 'Subscriptions / Recurring', 'subscription', 'monthly')}
         {activeTab === 'unexpected' && renderItemTable(items.filter(i => i.category === 'unexpected_expense'), 'One-Time Expenses', 'unexpected_expense', 'one_time')}
         {activeTab === 'calendar' && renderCalendar()}
+        {activeTab === 'settings' && currentUser.role === 'admin' && <AdminSettings />}
 
       </div>
     </div>
