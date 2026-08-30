@@ -2,15 +2,20 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Install dependencies
+# Copy package files
 COPY package*.json ./
-RUN npm install express cors
 
-# Copy app files and build frontend
+# Install dependencies
+RUN npm install
+
+# Copy application code
 COPY . .
+
+# Build the frontend
 RUN npm run build
 
+# Expose port
 EXPOSE 9600
-ENV PORT=9600
 
+# Start the server
 CMD ["node", "server.js"]

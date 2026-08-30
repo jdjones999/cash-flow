@@ -1,0 +1,21 @@
+diff --git a/src/App.tsx b/src/App.tsx
+index abc123..def456 100644
+--- a/src/App.tsx
++++ b/src/App.tsx
+@@ -1,10 +1,13 @@
+ import React, { useState, useEffect } from 'react';
+-import { LoginForm } from './components/LoginForm';
+-import { RegistrationForm } from './components/RegistrationForm';
++// import { LoginForm } from './components/LoginForm';
++// import { RegistrationForm } from './components/RegistrationForm';
+ import { Dashboard } from './components/Dashboard';
+ 
+ function App() {
+-  const [isAuthenticated, setIsAuthenticated] = useState(false);
++  // Auto-authenticate
++  const [isAuthenticated, setIsAuthenticated] = useState(true);
++  const [user, setUser] = useState({ id: '1', email: 'admin@example.com', role: 'admin' });
++  // Remove all authentication logic
+   
+   useEffect(() => {
+     // Check auth status

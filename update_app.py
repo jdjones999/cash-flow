@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+app_tsx = '''import React, { useState } from 'react';
 import { 
   LayoutDashboard, DollarSign, Calendar as CalendarIcon, AlertTriangle, 
   Wallet, Plus, Trash2, Edit3, Check, X, LogOut, ChevronLeft, ChevronRight, TrendingUp, Settings
@@ -525,3 +525,8 @@ export function App() {
     </div>
   );
 }
+'''
+
+with open('src/App.tsx', 'w') as f:
+    f.write(app_tsx)
+print("src/App.tsx written successfully.")
